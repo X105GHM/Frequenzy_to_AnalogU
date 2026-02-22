@@ -4,7 +4,7 @@
 namespace cfg
 {
     inline constexpr uint8_t kAdcChannel = 1;
-    inline constexpr uint8_t kPwmPinBit = PB0;
+    inline constexpr uint8_t kPwmPinBit = 0;
 
     inline constexpr uint32_t kAdcPrescaler = 32;
     inline constexpr uint32_t kAdcSampleRate = (F_CPU / kAdcPrescaler) / 13; // ~19.2 kS/s
