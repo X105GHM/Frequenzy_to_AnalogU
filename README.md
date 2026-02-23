@@ -114,3 +114,187 @@ The PWM runs at about **31.25 kHz** (Timer0, Fast PWM, prescaler = 1 at 8 MHz), 
         AdcFrequencyMeter.hpp          # ADC frequency measurement interface
         PwmOutput.cpp                  # Timer0 PWM setup and duty control
         PwmOutput.hpp                  # PWM driver interface
+```
+
+---
+
+## Code Overview
+
+### `config/config.hpp`
+
+Contains all user-adjustable parameters:
+
+- ADC settings
+- threshold and hysteresis values
+- valid frequency range
+- frequency-to-PWM mapping range
+- timeout for signal loss
+
+This makes it easy to tune the behavior without touching the driver code.
+
+---
+
+### `drivers/PwmOutput`
+
+Responsible for configuring and controlling the PWM output:
+
+- sets **PB0 (OC0A)** as output
+- configures **Timer0** in Fast PWM mode
+- updates duty cycle via `setDuty()`
+
+---
+
+### `drivers/AdcFrequencyMeter`
+
+Responsible for measuring the frequency using the ADC:
+
+- ADC runs in **free-running mode**
+- interrupt (`ADC_vect`) reads samples continuously
+- hysteresis-based threshold detection identifies rising edges
+- measured period is converted to frequency
+- basic IIR smoothing stabilizes the output
+
+---
+
+### `app/FrequencyToPwmMapper.hpp`
+
+Maps frequency (Hz) to PWM (0–255) using a linear scale.
+
+Example behavior:
+
+- frequency below `kMapFreqMinHz` → PWM = 0
+- frequency above `kMapFreqMaxHz` → PWM = 255
+- values in between are linearly scaled
+
+---
+
+### `main.cpp`
+
+The main loop is intentionally simple:
+
+- read measured frequency
+- map frequency to PWM
+- update PWM output
+- if no valid signal is detected → output 0 V (PWM duty = 0)
+
+---
+
+## Build Environment
+
+This project uses **PlatformIO** with **bare-metal AVR** (no Arduino framework).
+
+### `platformio.ini`
+
+> `src_dir = .` is included because `main.cpp` is stored in the project root.
+
+```ini
+[env:attiny85]
+platform = atmelavr
+board = attiny85
+framework =
+src_dir = .
+upload_protocol = avrispmkII
+
+board_build.f_cpu = 8000000L
+
+build_flags =
+    -DF_CPU=8000000UL
+    -std=gnu++17
+    -Wall
+    -Wextra
+    -Wconversion
+    -Werror=format
+    -Os
+    -ffunction-sections
+    -fdata-sections
+    -fno-exceptions
+    -fno-rtti
+    -Wl,--gc-sections
+
+board_fuses.lfuse = 0xE2
+board_fuses.hfuse = 0xDF
+board_fuses.efuse = 0xFF
+```
+
+### Fuse note
+
+The fuse values above configure the ATtiny85 for **8 MHz internal oscillator** (no clock divide by 8), which is required for correct timing and frequency measurement.
+
+---
+
+## Tuning and Calibration
+
+You can adjust the behavior in `config/config.hpp`.
+
+### Frequency mapping range
+
+Defines which input frequency range corresponds to **0…100% PWM** (and therefore **0…VCC** after RC filtering).
+
+```cpp
+kMapFreqMinHz
+kMapFreqMaxHz
+```
+
+### Threshold / Hysteresis
+
+Useful if your signal amplitude or noise level changes.
+
+```cpp
+kThreshold
+kHysteresis
+```
+
+### Valid frequency limits
+
+Used to reject invalid or unstable measurements.
+
+```cpp
+kValidFreqMinHz
+kValidFreqMaxHz
+```
+
+---
+
+## Limitations
+
+- ADC-based frequency measurement is simple and flexible, but not the most precise method.
+- Accuracy decreases at higher frequencies because the ADC sample rate is limited.
+- Best suited for low to mid frequency ranges (depending on waveform quality and amplitude).
+
+---
+
+## Images
+
+### Schematic (PDF)
+
+The schematic is stored as a **PDF** in the `Docs` branch:
+
+- [Open Schematic PDF](https://github.com/X105GHM/Frequenzy_to_AnalogU/blob/Docs/Schematic_FtoA_2026-02-22.pdf)
+
+### Perfboard / Build
+
+![Perfboard Build](https://raw.githubusercontent.com/X105GHM/Frequenzy_to_AnalogU/Docs/FtoA_board.jpg)
+
+---
+
+## Oscillograms (Measured Signals)
+
+This section shows oscilloscope screenshots from the real hardware.
+
+### 150 Hz
+
+![Oscillogram 150 Hz](https://raw.githubusercontent.com/X105GHM/Frequenzy_to_AnalogU/Docs/FtoA_150Hz.jpg)
+
+### 240 Hz
+
+![Oscillogram 240 Hz](https://raw.githubusercontent.com/X105GHM/Frequenzy_to_AnalogU/Docs/FtoA_240Hz.jpg)
+
+### 500 Hz
+
+![Oscillogram 500 Hz](https://raw.githubusercontent.com/X105GHM/Frequenzy_to_AnalogU/Docs/FtoA_500Hz.jpg)
+
+---
+
+## Author
+
+Built for an **ATtiny85** using **PlatformIO**, **avr-libc**, and modern **C++17**.
