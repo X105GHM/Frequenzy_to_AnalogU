@@ -280,6 +280,8 @@ The schematic is stored as a **PDF** in the `Docs` branch:
 ## Oscillograms (Measured Signals)
 
 This section shows oscilloscope screenshots from the real hardware.
+`CH1` Output
+`CH2` Input
 
 ### 150 Hz
 
