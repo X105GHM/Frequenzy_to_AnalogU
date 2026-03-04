@@ -19,12 +19,11 @@ namespace
 
 namespace drivers::adc_freq
 {
-
     void init()
     {
         // PB2 / ADC1 als Eingang, Pullup aus
-        DDRB &= ~_BV(PB2);
-        PORTB &= ~_BV(PB2);
+        DDRB &= static_cast<uint8_t>(~_BV(PB2));
+        PORTB &= static_cast<uint8_t>(~_BV(PB2));
 
         // Digital Input auf ADC1 
         DIDR0 |= _BV(ADC1D);
@@ -40,16 +39,17 @@ namespace drivers::adc_freq
         // ADIE  = ADC Interrupt Enable
         // ADPS2 + ADPS0 = Prescaler 32
         // ADSC  = Start Conversion
-        ADCSRA = _BV(ADEN) |
+        ADCSRA = _BV(ADEN)  |
                  _BV(ADATE) |
-                 _BV(ADIE) |
-                 _BV(ADPS2) | _BV(ADPS0) |
+                 _BV(ADIE)  |
+                 _BV(ADPS2) | 
+                 _BV(ADPS0) |
                  _BV(ADSC);
 
-// Free-running trigger source
-#ifdef ADCSRB
-        ADCSRB = 0;
-#endif
+        // Free-running trigger source
+        #ifdef ADCSRB
+            ADCSRB = 0;
+        #endif
     }
 
     [[nodiscard]] bool readFrequencyHz(uint16_t &frequencyHz)
